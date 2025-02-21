@@ -19,7 +19,7 @@ Este proyecto automatiza la creación de videos combinando texto generado por IA
 - GPU compatible con CUDA (recomendado) o muchísima RAM
 - NVIDIA CUDA 2.16
 - NVIDIA cuDNN 9.7.1
-- FFmpeg Build Essentials instalado en el sistema
+- FFmpeg 7.1-essentials_build-www.gyan.dev
 - Cuenta en Hugging Face (para acceso a modelos)
 
 ## 🔧 Instalación
