@@ -10,7 +10,7 @@ Este proyecto automatiza la creación de videos combinando texto generado por IA
 
 ## 🚀 Características
 
-- Generación de texto usando Mistral AI
+- Generación de texto usando Llama 3.2
 - Conversión de texto a voz con gTTS
 - Generación de imágenes con Stable Diffusion 3
 - Creación automática de videos con FFmpeg
@@ -25,7 +25,8 @@ Este proyecto automatiza la creación de videos combinando texto generado por IA
 - NVIDIA CUDA 2.16
 - NVIDIA cuDNN 9.7.1
 - FFmpeg 7.1-essentials_build
-- Cuenta en Hugging Face
+- Ollama instalado y configurado
+- Modelo Llama 3.2 descargado en Ollama
 
 ## 🔧 Instalación
 
@@ -49,11 +50,10 @@ python -m venv venv
 pip install -r requirements.txt
 ```
 
-4. Configurar variables de entorno:
-   Crear archivo `.env`:
+4. Descargar modelo Llama 3.2 en Ollama:
 
-```env
-HUGGINGFACE_TOKEN=tu_token_aqui
+```bash
+ollama pull llama2
 ```
 
 ## 💻 Uso
@@ -100,7 +100,8 @@ IA_Automatizacion/
 
 1. **Generador de Textos**
 
-   - Usa Mistral AI 7B Instruct
+   - Usa Llama 3.2 a través de Ollama
+   - API local para generación de texto
    - Optimizado para historias cortas
 
 2. **Generador de Imágenes**
@@ -133,4 +134,5 @@ Este proyecto está bajo la Licencia MIT
 
 ```
 ¡Recuerda personalizar las URLs, credenciales y otros detalles específicos de tu implementación!
+
 ```
