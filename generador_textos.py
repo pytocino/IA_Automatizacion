@@ -13,7 +13,7 @@ from transformers import (
 
 # Constantes globales
 MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.1"
-OUTPUT_FILE = "ideas_generadas.csv"
+OUTPUT_FOLDER = "resources/texto"
 CSV_HEADERS = ["ID", "Idea", "Nicho"]
 
 
@@ -46,15 +46,13 @@ def inicializar_modelo(token: str):
     return model, tokenizer
 
 
-def crear_prompt(nicho: str, num_ideas: int) -> str:
+def crear_prompt(nicho: str) -> str:
     """Genera el prompt para el modelo."""
     return f"""
         [INST]
         You are a professional storyteller and narrative designer specialized in {nicho} stories.
-        Make each story unique and engaging, focusing on {nicho} themes.
-
-        Generate {num_ideas} unique short stories, following these guidelines:
-        - Each story should be a complete narrative arc with a beginning, middle, and end.
+        Generate one unique short story, following these guidelines:
+        - The story should be a complete narrative arc with a beginning, middle, and end.
         - Length: around 180 characters.
         - Include emotional elements and vivid descriptions.
         - Focus on creating cinematic, visual moments.
@@ -62,31 +60,26 @@ def crear_prompt(nicho: str, num_ideas: int) -> str:
         - Suitable for short-form video narration.
         - Include specific details about settings, lighting, and atmosphere.
 
-        Format each story exactly as follows (each story must be separated):
-        Title:
+        Format the story exactly as follows:
         Story:
         [/INST]
     """
 
 
-def procesar_respuesta(respuesta: list, num_ideas: int) -> list:
-    """Procesa la respuesta del modelo y extrae las historias."""
+def procesar_respuesta(respuesta: list) -> str:
+    """Procesa la respuesta del modelo y extrae la historia."""
     content = respuesta[0]["generated_text"].split("[/INST]")[-1].strip()
-    pattern = r"Title:\s*(.*?)\s*Story:\s*(.*?)(?=\s*Title:|\Z)"
-    historias = re.findall(pattern, content, re.DOTALL)
-    return [
-        re.sub(r"^.*?:\s*", "", historia.strip(), 1)
-        for titulo, historia in historias[:num_ideas]
-    ]
+    pattern = r"Story:\s*(.*?)(?=\Z)"
+    historia = re.search(pattern, content, re.DOTALL)
+    return historia.group(1).strip() if historia else content.strip()
 
 
-def guardar_ideas_csv(ideas: list, nicho: str, archivo: str):
-    """Guarda las ideas generadas en un archivo CSV."""
+def guardar_idea_csv(ideas: list, nicho: str, archivo: str):
+    """Guarda la idea generada en un archivo CSV."""
     with open(archivo, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(CSV_HEADERS)
-        for idx, idea in enumerate(ideas, 1):
-            writer.writerow([idx, idea, nicho])
+        writer.writerow([1, ideas[0], nicho])
 
 
 def formatear_csv(archivo: str):
@@ -108,38 +101,38 @@ def formatear_csv(archivo: str):
         f.write("".join(nuevo_contenido))
 
 
-def generar_ideas(model, tokenizer, nicho: str, num_ideas: int):
-    """Genera las ideas utilizando el modelo."""
+def generar_ideas(model, tokenizer, nicho: str):
+    """Genera una idea utilizando el modelo."""
     generador = pipeline(
         "text-generation",
         model=model,
         tokenizer=tokenizer,
-        device_map="auto",
+        device_map="gpu",
         torch_dtype=torch.float16,
     )
 
     respuesta = generador(
-        crear_prompt(nicho, num_ideas),
+        crear_prompt(nicho),
         max_new_tokens=1024,
         do_sample=True,
-        temperature=0.85,
+        temperature=0.9,
         top_k=50,
         top_p=0.95,
         num_return_sequences=1,
         repetition_penalty=1.2,
     )
 
-    return procesar_respuesta(respuesta, num_ideas)
+    return [procesar_respuesta(respuesta)]
 
 
-def main(nicho: str, num_ideas: int):
+def main(nicho: str):
     """Función principal que coordina todo el proceso."""
     token = configurar_entorno()
     model, tokenizer = inicializar_modelo(token)
 
-    ideas = generar_ideas(model, tokenizer, nicho, num_ideas)
-    guardar_ideas_csv(ideas, nicho, OUTPUT_FILE)
-    formatear_csv(OUTPUT_FILE)
+    ideas = generar_ideas(model, tokenizer, nicho)
+    guardar_idea_csv(ideas, nicho, os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv"))
+    formatear_csv(os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv"))
 
     # Limpieza de memoria
     torch.cuda.empty_cache()
@@ -149,8 +142,6 @@ def main(nicho: str, num_ideas: int):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generador de ideas para historias")
     parser.add_argument("--nicho", required=True, help="Nicho o tema de las historias")
-    parser.add_argument(
-        "--num_ideas", type=int, required=True, help="Número de ideas a generar"
-    )
     args = parser.parse_args()
-    main(args.nicho, args.num_ideas)
+    os.makedirs(OUTPUT_FOLDER, exist_ok=True)
+    main(args.nicho)

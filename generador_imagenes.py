@@ -1,9 +1,11 @@
+import argparse
 import csv
 import os
 import subprocess
 import torch
 import time
 import random
+import nltk
 from nltk.corpus import stopwords
 from diffusers import (
     BitsAndBytesConfig,
@@ -11,12 +13,16 @@ from diffusers import (
     StableDiffusion3Pipeline,
 )
 
+if not stopwords.fileids():
+    nltk.download("stopwords")
+
 # Configuración global
-AUDIO_DIR = "audios"
-IMAGE_DIR = "imagenes"
+AUDIO_DIR = "resources/audio"
+IMAGE_DIR = "resources/imagenes"
+TEXT_DIR = "resources/texto"
 MODEL_ID = "stabilityai/stable-diffusion-3.5-medium"
-IMAGE_WIDTH = 576
-IMAGE_HEIGHT = 1024
+IMAGE_WIDTH = 720
+IMAGE_HEIGHT = 1072
 IMAGEN_QUALITY = 90
 FRAMES_PER_SECOND = 4
 
@@ -89,12 +95,11 @@ def procesar_texto(texto: str) -> list[str]:
 
 
 def generar_imagenes_dinamicamente(
-    idea_texto: str, audio_path: str, nicho: str, pipe: StableDiffusion3Pipeline
+    texto: str, duracion_audio: float, nicho: str, pipe: StableDiffusion3Pipeline
 ) -> list[str]:
     """Genera imágenes basadas en el texto y la duración del audio."""
-    duracion_audio = obtener_duracion_audio(audio_path)
     num_imagenes = max(1, int(duracion_audio / FRAMES_PER_SECOND))
-    palabras_clave = procesar_texto(idea_texto)
+    palabras_clave = procesar_texto(texto)
     imagenes_ruta = []
 
     for idx in range(num_imagenes):
@@ -103,7 +108,7 @@ def generar_imagenes_dinamicamente(
         with torch.inference_mode():
             imagen = pipe(
                 prompt_optimizado,
-                num_inference_steps=20,
+                num_inference_steps=30,
                 guidance_scale=7.0,
                 negative_prompt="text, watermark, low quality, cropped",
                 height=IMAGE_HEIGHT,
@@ -111,8 +116,7 @@ def generar_imagenes_dinamicamente(
                 max_sequence_length=77,
             ).images[0]
 
-        torch.cuda.empty_cache()
-        ruta_imagen = os.path.join(IMAGE_DIR, f"imagen_{idx + 1}_{nicho}.webp")
+        ruta_imagen = os.path.join(IMAGE_DIR, f"imagen_{idx + 1:03d}_{nicho}.jpeg")
         imagen.save(ruta_imagen, quality=IMAGEN_QUALITY, optimize=True)
         imagenes_ruta.append(ruta_imagen)
         time.sleep(0.5)
@@ -120,27 +124,34 @@ def generar_imagenes_dinamicamente(
     return imagenes_ruta
 
 
-def main():
-    # Configurar el modelo una sola vez
+def main(nicho):
+    os.makedirs(IMAGE_DIR, exist_ok=True)
     pipe = configurar_modelo()
+    try:
+        csv_filename = os.path.join(TEXT_DIR, f"idea_{nicho}.csv")
+        with open(csv_filename, "r", encoding="utf-8") as f:
+            reader = csv.DictReader(f)
+            row = next(reader)
+            texto = row["Idea"]
 
-    base_dir = os.path.dirname(os.path.abspath(__file__))
-    audio_dir_abs = os.path.join(base_dir, AUDIO_DIR)
+        audio_path = os.path.join(AUDIO_DIR, f"audio_{nicho}.mp3")
+        duracion_audio = obtener_duracion_audio(audio_path)
 
-    with open("ideas_generadas.csv", "r", encoding="utf-8") as f:
-        reader = csv.DictReader(f)
-        for row in reader:
-            id_idea = row["ID"]
-            idea_texto = row["Idea"]
-            nicho = row["Nicho"]
+        generar_imagenes_dinamicamente(texto, duracion_audio, nicho, pipe)
 
-            audio_path = os.path.join(audio_dir_abs, f"idea_{id_idea}_{nicho}.mp3")
-            generar_imagenes_dinamicamente(idea_texto, audio_path, nicho, pipe)
-
-    # Limpieza final de memoria
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
+    except FileNotFoundError:
+        print(f"No se encontró el archivo CSV: {csv_filename}")
+    except StopIteration:
+        print("El archivo CSV está vacío")
+    except Exception as e:
+        print(f"Error inesperado: {str(e)}")
+    finally:
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
 
 
 if __name__ == "__main__":
-    main()
+    parser = argparse.ArgumentParser(description="Generador de imágenes para historias")
+    parser.add_argument("--nicho", required=True, help="Nicho o tema de las historias")
+    args = parser.parse_args()
+    main(args.nicho)

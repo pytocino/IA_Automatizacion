@@ -10,7 +10,10 @@ from tqdm import tqdm
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s - %(levelname)s - %(message)s",
-    handlers=[logging.FileHandler("automation.log"), logging.StreamHandler(sys.stdout)],
+    handlers=[
+        logging.FileHandler("log/automation.log"),
+        logging.StreamHandler(sys.stdout),
+    ],
 )
 
 
@@ -59,10 +62,11 @@ def main():
         (
             "Generando texto",
             "./generador_textos.py",
-            ["--nicho", nicho, "--num_ideas", str(num_ideas)],
+            ["--nicho", nicho],
         ),
-        ("Generando audio", "./generador_audios.py", None),
-        ("Generando imágenes", "./generador_imagenes.py", None),
+        ("Generando audio", "./generador_audios.py", ["--nicho", nicho]),
+        ("Generando imágenes", "./generador_imagenes.py", ["--nicho", nicho]),
+        ("Generando subtitulos", "./generador_subtitulos.py", ["--nicho", nicho]),
         ("Generando videos", "./generador_videos_subtitulados.py", ["--nicho", nicho]),
     ]
 

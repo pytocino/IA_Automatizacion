@@ -33,16 +33,13 @@ env/
 *.swo
 
 # Archivos generados por tu proyecto
-audios/
-videos/
-imagenes/
-subtitulos/
+resources/
+log/
 *.mp3
 *.mp4
 *.webp
 *.srt
 *.log
-automation.log
 
 # Archivos de configuración locales
 config_local.json
