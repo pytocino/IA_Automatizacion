@@ -4,6 +4,8 @@ import logging
 import json
 import sys
 import random
+import time
+from tqdm import tqdm
 
 logging.basicConfig(
     level=logging.INFO,
@@ -18,12 +20,15 @@ def ejecutar_script(script_name: str, args: list = None) -> bool:
         if args:
             cmd.extend(args)
 
+        logging.info(f"Ejecutando {script_name}...")
         process = subprocess.run(cmd, check=True, text=True, capture_output=True)
 
-        if process.stdout:
-            logging.info(process.stdout)
-        if process.stderr:
-            logging.warning(process.stderr)
+        # Si hay algún error, lo registramos
+        if process.returncode != 0:
+            logging.error(
+                f"Error en {script_name}. Revisa automation.log para más detalles"
+            )
+            return False
 
         return True
 
@@ -49,16 +54,31 @@ def main():
     nicho = random.choice(nichos)
     logging.info(f"Generando contenido para el nicho: {nicho}")
 
-    # 1. Generar texto
-    ejecutar_script(
-        "./generador_textos.py", ["--nicho", nicho, "--num_ideas", str(num_ideas)]
-    )
+    # Lista de tareas a ejecutar
+    tareas = [
+        (
+            "Generando texto",
+            "./generador_textos.py",
+            ["--nicho", nicho, "--num_ideas", str(num_ideas)],
+        ),
+        ("Generando audio", "./generador_audios.py", None),
+        ("Generando imágenes", "./generador_imagenes.py", None),
+        ("Generando videos", "./generador_videos_subtitulados.py", ["--nicho", nicho]),
+    ]
 
-    # 2. Generar audio
-    ejecutar_script("./generador_audios.py")
+    # Barra de progreso principal
+    with tqdm(total=len(tareas), desc="Progreso total", position=0) as pbar:
+        for desc, script, args in tareas:
+            # Actualizar descripción
+            pbar.set_description(f"▶ {desc}")
 
-    # 3. Generar videos
-    ejecutar_script("./generador_videos.py")
+            # Ejecutar script
+            if not ejecutar_script(script, args):
+                logging.error(f"Error en {desc}")
+                break
+
+            time.sleep(1)
+            pbar.update(1)
 
     logging.info("¡Automatización completada!")
 

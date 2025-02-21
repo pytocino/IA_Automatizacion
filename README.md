@@ -1,41 +1,45 @@
-````markdown
-# filepath: /C:/Users/pedro/Documents/IA_Automatizacion/README.md
-
 # Generador Automático de Videos 🎥
 
-Este proyecto automatiza la creación de videos combinando texto generado por IA, síntesis de voz y generación de imágenes. 16GB RAM (necesita más) || NVIDIA GeForce RTX 3060 Laptop GPU (suficiente(creo)) || 512GB SSD (más no estaría mal)
+Este proyecto automatiza la creación de videos combinando texto generado por IA, síntesis de voz y generación de imágenes.
+
+**Requisitos de Hardware Recomendados:**
+
+- RAM: 16GB mínimo (32GB recomendado)
+- GPU: NVIDIA GeForce RTX 3060 o superior
+- Almacenamiento: 512GB SSD (1TB recomendado)
 
 ## 🚀 Características
 
 - Generación de texto usando Mistral AI
 - Conversión de texto a voz con gTTS
-- Generación de imágenes con Stable Diffusion
+- Generación de imágenes con Stable Diffusion 3
 - Creación automática de videos con FFmpeg
 - Subtítulos sincronizados
+- Barra de progreso visual
+- Sistema de logging integrado
 
 ## 📋 Requisitos Previos
 
 - Python 3.12
-- GPU compatible con CUDA (recomendado) o muchísima RAM
+- GPU compatible con CUDA
 - NVIDIA CUDA 2.16
 - NVIDIA cuDNN 9.7.1
-- FFmpeg 7.1-essentials_build-www.gyan.dev
-- Cuenta en Hugging Face (para acceso a modelos)
+- FFmpeg 7.1-essentials_build
+- Cuenta en Hugging Face
 
 ## 🔧 Instalación
 
-1. Clonar el repositorio:
+1. Clonar el repositorio y acceder al directorio:
 
 ```bash
 git clone <url-del-repositorio>
 cd IA_Automatizacion
 ```
-````
 
 2. Crear y activar entorno virtual:
 
 ```bash
-python -3.12 -m venv venv
+python -m venv venv
 .\venv\Scripts\activate
 ```
 
@@ -46,7 +50,7 @@ pip install -r requirements.txt
 ```
 
 4. Configurar variables de entorno:
-   - Crear archivo `.env` con tus credenciales:
+   Crear archivo `.env`:
 
 ```env
 HUGGINGFACE_TOKEN=tu_token_aqui
@@ -54,73 +58,79 @@ HUGGINGFACE_TOKEN=tu_token_aqui
 
 ## 💻 Uso
 
-1. Configurar parámetros en `config.json`:
+1. Configurar `config.json`:
 
 ```json
 {
-  "nichos": ["adventure", "love", "mystery", "sci-fi", "horror", "fantasy"], //modificar a placer
+  "nichos": ["adventure", "mystery", "sci-fi", "fantasy"],
   "num_ideas": 1
 }
 ```
 
-2. Ejecutar la automatización:
+2. Ejecutar el programa:
+   - **Opción A**: Desde terminal
+   ```bash
+   python main.py --config config.json
+   ```
+   - **Opción B**: Usando el acceso directo
+     - Doble clic en `GenerarContenido.bat` desde el escritorio
 
-```bash
-python main.py
-```
+## 📊 Monitoreo y Logs
+
+- Progreso visual con barras de progreso
+- Logs detallados en `automation.log`
+- Salida en tiempo real en consola
 
 ## 📁 Estructura del Proyecto
 
 ```
 IA_Automatizacion/
-├── main.py                 # Script principal
-├── generador_textos.py     # Generación de texto
-├── generador_audios.py     # Síntesis de voz
-├── generador_videos.py     # Creación de videos
-├── add_subtitles.py        # Añadir subtítulos
-├── config.json             # Configuración
-├── requirements.txt        # Dependencias
-├── .env                    # Variables de entorno
-├── .gitignore             # Exclusiones de Git
-└── README.md              # Este archivo
+├── main.py                        # Coordinador principal
+├── generador_textos.py           # Generación de historias
+├── generador_audios.py           # Síntesis de voz
+├── generador_imagenes.py         # Generación de imágenes
+├── generador_videos_subtitulados.py  # Creación de videos
+├── config.json                   # Configuración
+├── requirements.txt              # Dependencias
+├── .env                         # Variables de entorno
+└── automation.log               # Archivo de logs
 ```
 
 ## 🛠️ Componentes Principales
 
 1. **Generador de Textos**
 
-   - Utiliza Mistral AI para generar historias cortas
-   - Formato optimizado para videos
+   - Usa Mistral AI 7B Instruct
+   - Optimizado para historias cortas
 
-2. **Generador de Audio**
+2. **Generador de Imágenes**
 
-   - Convierte texto a voz usando gTTS
-   - Soporte multilenguaje
+   - Stable Diffusion 3.5
+   - Optimización de memoria
+   - Formato WebP
 
-3. **Generador de Videos**
-   - Genera imágenes con Stable Diffusion
-   - Combina imágenes y audio con FFmpeg
-   - Añade subtítulos sincronizados
+3. **Sistema de Automatización**
+   - Ejecución secuencial optimizada
+   - Manejo de errores robusto
+   - Logging comprehensivo
 
-## 📝 Notas
+## 📝 Notas Importantes
 
-- Las imágenes generadas se guardan en formato WebP
-- Los videos se generan en formato MP4 con codec H.264
-- Se recomienda usar GPU para la generación de imágenes
+- Las imágenes se generan en formato WebP para optimizar espacio
+- Videos en MP4 con codec H.264
+- El sistema crea automáticamente los directorios necesarios
+- Los logs se mantienen en `automation.log`
 
-## 🤝 Contribuir
+## 🔍 Solución de Problemas
 
-1. Fork del repositorio
-2. Crear rama para feature (`git checkout -b feature/nueva-caracteristica`)
-3. Commit de cambios (`git commit -am 'Añadir nueva característica'`)
-4. Push a la rama (`git push origin feature/nueva-caracteristica`)
-5. Crear Pull Request
+- Revisar `automation.log` para mensajes detallados
+- La barra de progreso muestra el estado actual
+- Los errores se registran con timestamp para fácil debugging
 
 ## 📄 Licencia
 
-Este proyecto está bajo la Licencia MIT - ver el archivo LICENSE.md para detalles
+Este proyecto está bajo la Licencia MIT
 
 ```
-
 ¡Recuerda personalizar las URLs, credenciales y otros detalles específicos de tu implementación!
 ```

@@ -50,3 +50,8 @@ config_local.json
 # Archivos temporales
 *.tmp
 temp/
+
+# Otros
+*.bak
+*.bat
+*.csv
