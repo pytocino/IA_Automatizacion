@@ -1,0 +1,52 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+venv/
+ENV/
+env/
+.env
+
+# IDEs
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Archivos generados por tu proyecto
+audios/
+videos/
+imagenes/
+subtitulos/
+*.mp3
+*.mp4
+*.webp
+*.srt
+*.log
+automation.log
+
+# Archivos de configuración locales
+config_local.json
+
+# Archivos temporales
+*.tmp
+temp/

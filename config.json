@@ -1,0 +1,35 @@
+{
+  "nichos": ["adventure", "love", "mystery", "sci-fi", "horror", "fantasy"],
+  "generacion_texto": {
+    "num_ideas": 1,
+    "max_length": 150,
+    "temperatura": 0.7
+  },
+  "generacion_audio": {
+    "language": "es",
+    "voice": "es-ES-AlvaroNeural",
+    "rate": "1.0",
+    "volume": "1.0"
+  },
+  "generacion_video": {
+    "width": 576,
+    "height": 1024,
+    "fps": 30,
+    "calidad_video": {
+      "crf": 20,
+      "preset": "medium"
+    },
+    "calidad_audio": {
+      "bitrate": "192k"
+    },
+    "imagen": {
+      "num_inference_steps": 20,
+      "guidance_scale": 7.0
+    }
+  },
+  "directorios": {
+    "audio": "audios",
+    "imagen": "imagenes",
+    "video": "videos"
+  }
+}
