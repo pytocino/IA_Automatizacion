@@ -13,7 +13,7 @@ IMAGE_DIR = "resources/imagenes"
 AUDIO_DIR = "resources/audio"
 VIDEO_DIR = "resources/video"
 TEXT_DIR = "resources/texto"
-SUBTITULOS_DIR = "resources/subtitulos"
+SUBTITULOS_DIR = "resources/subtitulos/"
 
 
 def obtener_texto_csv(nicho: str) -> str:
@@ -135,8 +135,8 @@ def main(nicho: str):
     texto = obtener_texto_csv(nicho)
     duracion_audio = obtener_duracion_audio(nicho)
     subtitulos_path = os.path.join(SUBTITULOS_DIR, f"subtitulos_{nicho}.srt")
-    output_path = os.path.join(VIDEO_DIR, f"video_backup_{nicho}.mp4")
-    crear_video(texto, duracion_audio, subtitulos_path, output_path, nicho)
+    output_path = os.path.join(VIDEO_DIR, f"video_{nicho}.mp4")
+    crear_video(nicho, duracion_audio, subtitulos_path, output_path)
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
 

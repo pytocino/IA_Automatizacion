@@ -1,49 +1,14 @@
 import csv
 import re
-import torch
 import argparse
 import os
-from dotenv import load_dotenv
-from transformers import (
-    AutoModelForCausalLM,
-    AutoTokenizer,
-    pipeline,
-    BitsAndBytesConfig,
-)
+import requests
+import subprocess
+import time
 
 # Constantes globales
-MODEL_NAME = "mistralai/Mistral-7B-Instruct-v0.1"
 OUTPUT_FOLDER = "resources/texto"
 CSV_HEADERS = ["ID", "Idea", "Nicho"]
-
-
-def configurar_entorno():
-    """Configura las variables de entorno y devuelve el token."""
-    load_dotenv()
-    token = os.getenv("HUGGINGFACE_TOKEN")
-    if not token:
-        raise ValueError("No se encontró el token de Hugging Face en el archivo .env")
-    return token
-
-
-def inicializar_modelo(token: str):
-    """Inicializa y retorna el modelo y tokenizer con la configuración optimizada."""
-    quantization_config = BitsAndBytesConfig(
-        load_in_4bit=True,
-        bnb_4bit_compute_dtype=torch.float16,
-        bnb_4bit_quant_type="nf4",
-    )
-
-    model = AutoModelForCausalLM.from_pretrained(
-        MODEL_NAME,
-        token=token,
-        quantization_config=quantization_config,
-        device_map="auto",
-        trust_remote_code=True,
-    )
-
-    tokenizer = AutoTokenizer.from_pretrained(MODEL_NAME, token=token)
-    return model, tokenizer
 
 
 def crear_prompt(nicho: str) -> str:
@@ -53,15 +18,13 @@ def crear_prompt(nicho: str) -> str:
         You are a professional storyteller and narrative designer specialized in {nicho} stories.
         Generate one unique short story, following these guidelines:
         - The story should be a complete narrative arc with a beginning, middle, and end.
-        - Length: around 180 characters.
+        - Length: around 80 characters.
         - Include emotional elements and vivid descriptions.
         - Focus on creating cinematic, visual moments.
         - Perfect for video content and visual storytelling.
         - Suitable for short-form video narration.
-        - Include specific details about settings, lighting, and atmosphere.
 
-        Format the story exactly as follows:
-        Story:
+        Just give me the story. I'll take care of the rest.
         [/INST]
     """
 
@@ -101,42 +64,73 @@ def formatear_csv(archivo: str):
         f.write("".join(nuevo_contenido))
 
 
-def generar_ideas(model, tokenizer, nicho: str):
-    """Genera una idea utilizando el modelo."""
-    generador = pipeline(
-        "text-generation",
-        model=model,
-        tokenizer=tokenizer,
-        device_map="gpu",
-        torch_dtype=torch.float16,
-    )
+def generar_ideas_ollama(nicho: str) -> list[str]:
+    """Genera una idea utilizando el modelo de Ollama a través de su endpoint."""
+    prompt = crear_prompt(nicho)
+    url = "http://localhost:11434/api/generate"
 
-    respuesta = generador(
-        crear_prompt(nicho),
-        max_new_tokens=1024,
-        do_sample=True,
-        temperature=0.9,
-        top_k=50,
-        top_p=0.95,
-        num_return_sequences=1,
-        repetition_penalty=1.2,
-    )
+    payload = {
+        "model": "llama3.2",  # Especifica el modelo
+        "prompt": prompt,
+        "stream": False,  # Para obtener respuesta completa
+    }
 
-    return [procesar_respuesta(respuesta)]
+    try:
+        response = requests.post(url, json=payload)
+        response.raise_for_status()
+        data = response.json()
+
+        # Ollama devuelve la respuesta en el campo 'response'
+        texto_generado = data.get("response", "")
+
+        # Procesamos la respuesta
+        return [
+            procesar_respuesta([{"generated_text": prompt + "\n" + texto_generado}])
+        ]
+    except requests.exceptions.RequestException as e:
+        print(f"Error al conectar con Ollama: {e}")
+        return []
 
 
 def main(nicho: str):
-    """Función principal que coordina todo el proceso."""
-    token = configurar_entorno()
-    model, tokenizer = inicializar_modelo(token)
+    try:
+        # Verificar si Ollama ya está corriendo y matarlo si es necesario
+        subprocess.run(
+            ["taskkill", "/F", "/IM", "ollama.exe"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        print("Iniciando Ollama limpio...")
 
-    ideas = generar_ideas(model, tokenizer, nicho)
-    guardar_idea_csv(ideas, nicho, os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv"))
-    formatear_csv(os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv"))
+        # Iniciar Ollama en segundo plano
+        ollama_process = subprocess.Popen(
+            ["ollama", "run", "llama2"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
+        # Esperamos para que el endpoint se inicie
+        time.sleep(5)
 
-    # Limpieza de memoria
-    torch.cuda.empty_cache()
-    torch.cuda.ipc_collect()
+        # Generar ideas
+        ideas = generar_ideas_ollama(nicho)
+        if ideas:
+            guardar_idea_csv(
+                ideas, nicho, os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv")
+            )
+            formatear_csv(os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv"))
+            print("Ideas generadas con éxito")
+
+    except Exception as e:
+        print(f"Error al generar ideas: {e}")
+
+    finally:
+        # Asegurarnos de que Ollama se cierre
+        print("Finalizando Ollama...")
+        subprocess.run(
+            ["taskkill", "/F", "/IM", "ollama.exe"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
 
 
 if __name__ == "__main__":

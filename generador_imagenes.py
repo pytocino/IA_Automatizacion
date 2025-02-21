@@ -12,6 +12,7 @@ from diffusers import (
     SD3Transformer2DModel,
     StableDiffusion3Pipeline,
 )
+from tqdm import tqdm
 
 if not stopwords.fileids():
     nltk.download("stopwords")
@@ -21,10 +22,11 @@ AUDIO_DIR = "resources/audio"
 IMAGE_DIR = "resources/imagenes"
 TEXT_DIR = "resources/texto"
 MODEL_ID = "stabilityai/stable-diffusion-3.5-medium"
-IMAGE_WIDTH = 720
-IMAGE_HEIGHT = 1072
+IMAGE_WIDTH = 576
+IMAGE_HEIGHT = 1024
 IMAGEN_QUALITY = 90
 FRAMES_PER_SECOND = 4
+# 576, 1024
 
 
 # Configuración del modelo
@@ -102,7 +104,7 @@ def generar_imagenes_dinamicamente(
     palabras_clave = procesar_texto(texto)
     imagenes_ruta = []
 
-    for idx in range(num_imagenes):
+    for idx in tqdm(range(num_imagenes), desc="Generando imágenes", unit="imagen"):
         prompt_optimizado = generar_prompt_optimizado(palabras_clave)
 
         with torch.inference_mode():
