@@ -1,10 +1,8 @@
 import argparse
 import csv
 import os
-import subprocess
 import torch
 import time
-import random
 import nltk
 from nltk.corpus import stopwords
 from diffusers import (
@@ -18,15 +16,12 @@ if not stopwords.fileids():
     nltk.download("stopwords")
 
 # Configuración global
-AUDIO_DIR = "resources/audio"
+PROMPTS_DIR = "resources/prompts"
 IMAGE_DIR = "resources/imagenes"
-TEXT_DIR = "resources/texto"
 MODEL_ID = "stabilityai/stable-diffusion-3.5-medium"
 IMAGE_WIDTH = 576
 IMAGE_HEIGHT = 1024
 IMAGEN_QUALITY = 90
-FRAMES_PER_SECOND = 4
-# 576, 1024
 
 
 # Configuración del modelo
@@ -65,51 +60,24 @@ def configurar_modelo():
     return pipe
 
 
-def obtener_duracion_audio(audio_path: str) -> float:
-    """Obtiene la duración de un archivo de audio usando ffprobe."""
-    comando = [
-        "ffprobe",
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-of",
-        "default=noprint_wrappers=1:nokey=1",
-        audio_path,
-    ]
-    duracion = float(subprocess.check_output(comando).decode().strip())
-    return duracion
-
-
-def generar_prompt_optimizado(palabras_clave: list[str]) -> str:
-    """Genera un prompt optimizado para la generación de imágenes."""
-    num_palabras = random.randint(4, 9)
-    prompt_palabras = random.sample(
-        palabras_clave, min(num_palabras, len(palabras_clave))
-    )
-    return f"{' '.join(prompt_palabras)}, cinematic, detailed, high quality"
-
-
-def procesar_texto(texto: str) -> list[str]:
-    """Procesa el texto para obtener palabras clave relevantes."""
-    palabras = [p.strip() for p in texto.lower().split() if p.strip()]
-    return [p for p in palabras if p not in set(stopwords.words("english"))]
-
-
-def generar_imagenes_dinamicamente(
-    texto: str, duracion_audio: float, nicho: str, pipe: StableDiffusion3Pipeline
+def generar_imagenes_desde_prompts(
+    nicho: str, pipe: StableDiffusion3Pipeline
 ) -> list[str]:
-    """Genera imágenes basadas en el texto y la duración del audio."""
-    num_imagenes = max(1, int(duracion_audio / FRAMES_PER_SECOND))
-    palabras_clave = procesar_texto(texto)
+    """Genera imágenes basadas en los prompts pre-generados del CSV."""
     imagenes_ruta = []
+    prompts_file = os.path.join(PROMPTS_DIR, f"prompts_{nicho}.csv")
 
-    for idx in tqdm(range(num_imagenes), desc="Generando imágenes", unit="imagen"):
-        prompt_optimizado = generar_prompt_optimizado(palabras_clave)
+    # Leer prompts del CSV
+    with open(prompts_file, "r", encoding="utf-8") as f:
+        reader = csv.DictReader(f)
+        prompts = [row["Prompt"] for row in reader]
 
+    for idx, prompt in enumerate(
+        tqdm(prompts, desc="Generando imágenes", unit="imagen", position=1, leave=False)
+    ):
         with torch.inference_mode():
             imagen = pipe(
-                prompt_optimizado,
+                prompt,
                 num_inference_steps=30,
                 guidance_scale=7.0,
                 negative_prompt="text, watermark, low quality, cropped",
@@ -130,21 +98,9 @@ def main(nicho):
     os.makedirs(IMAGE_DIR, exist_ok=True)
     pipe = configurar_modelo()
     try:
-        csv_filename = os.path.join(TEXT_DIR, f"idea_{nicho}.csv")
-        with open(csv_filename, "r", encoding="utf-8") as f:
-            reader = csv.DictReader(f)
-            row = next(reader)
-            texto = row["Idea"]
-
-        audio_path = os.path.join(AUDIO_DIR, f"audio_{nicho}.mp3")
-        duracion_audio = obtener_duracion_audio(audio_path)
-
-        generar_imagenes_dinamicamente(texto, duracion_audio, nicho, pipe)
-
+        generar_imagenes_desde_prompts(nicho, pipe)
     except FileNotFoundError:
-        print(f"No se encontró el archivo CSV: {csv_filename}")
-    except StopIteration:
-        print("El archivo CSV está vacío")
+        print(f"No se encontró el archivo de prompts para el nicho: {nicho}")
     except Exception as e:
         print(f"Error inesperado: {str(e)}")
     finally:

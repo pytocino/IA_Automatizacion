@@ -7,6 +7,7 @@ import subprocess
 SUBTITULOS_DIR = "resources/subtitulos"
 TEXT_DIR = "resources/texto"
 AUDIO_DIR = "resources/audio"
+PROMPTS_DIR = "resources/prompts"
 
 
 def obtener_texto_csv(nicho: str) -> str:
@@ -35,44 +36,35 @@ def obtener_duracion_audio(nicho: str) -> float:
     return float(subprocess.check_output(comando).decode().strip())
 
 
+def obtener_numero_prompts(nicho: str) -> int:
+    """Obtiene el número de prompts del archivo CSV"""
+    prompts_path = os.path.join(PROMPTS_DIR, f"prompts_{nicho}.csv")
+    with open(prompts_path, mode="r", newline="", encoding="utf-8") as csvfile:
+        return sum(1 for _ in csv.DictReader(csvfile))
+
+
 def crear_archivo_srt(texto: str, duracion_audio: float, nicho: str) -> str:
-    """Crea un archivo SRT con bloques de 4-8 palabras cubriendo toda la duración"""
+    """Crea un archivo SRT con bloques que coinciden con el número de imágenes"""
     palabras = texto.split()
     srt_content = ""
-    palabras_restantes = palabras.copy()
-    contador_bloques = 1
+    num_imagenes = obtener_numero_prompts(nicho)
+
+    # Distribuir palabras equitativamente entre bloques
+    palabras_por_bloque = len(palabras) // num_imagenes
+    palabras_extra = len(palabras) % num_imagenes
+
+    tiempo_por_bloque = duracion_audio / num_imagenes
     tiempo_actual = 0
-    tiempo_minimo_bloque = 1.5
 
-    num_bloques_estimados = int(duracion_audio / tiempo_minimo_bloque)
-    palabras_por_bloque = max(4, len(palabras) // num_bloques_estimados)
+    for i in range(num_imagenes):
+        # Calcular palabras para este bloque
+        num_palabras = palabras_por_bloque + (1 if i < palabras_extra else 0)
+        inicio = i * palabras_por_bloque + min(i, palabras_extra)
+        fin = inicio + num_palabras
+        texto_bloque = " ".join(palabras[inicio:fin])
 
-    while palabras_restantes:
-        palabras_restantes_total = len(palabras_restantes)
-        tiempo_restante = duracion_audio - tiempo_actual
-
-        if tiempo_restante <= tiempo_minimo_bloque:
-            num_palabras = len(palabras_restantes)
-        else:
-            num_palabras = min(
-                random.randint(4, 8),
-                max(
-                    4,
-                    palabras_restantes_total
-                    // max(1, int(tiempo_restante / tiempo_minimo_bloque)),
-                ),
-            )
-
-        texto_bloque = " ".join(palabras_restantes[:num_palabras])
-        palabras_restantes = palabras_restantes[num_palabras:]
-
-        if not palabras_restantes:
-            fin_tiempo = duracion_audio
-        else:
-            duracion_bloque = max(
-                tiempo_minimo_bloque, (num_palabras / len(palabras)) * duracion_audio
-            )
-            fin_tiempo = min(tiempo_actual + duracion_bloque, duracion_audio)
+        # Calcular tiempos
+        fin_tiempo = min((i + 1) * tiempo_por_bloque, duracion_audio)
 
         inicio_seg = int(tiempo_actual)
         inicio_ms = int((tiempo_actual - inicio_seg) * 1000)
@@ -82,12 +74,9 @@ def crear_archivo_srt(texto: str, duracion_audio: float, nicho: str) -> str:
         inicio_str = f"{inicio_seg//3600:02d}:{(inicio_seg%3600)//60:02d}:{inicio_seg%60:02d},{inicio_ms:03d}"
         fin_str = f"{fin_seg//3600:02d}:{(fin_seg%3600)//60:02d}:{fin_seg%60:02d},{fin_ms:03d}"
 
-        srt_content += (
-            f"{contador_bloques}\n{inicio_str} --> {fin_str}\n{texto_bloque}\n\n"
-        )
+        srt_content += f"{i + 1}\n{inicio_str} --> {fin_str}\n{texto_bloque}\n\n"
 
         tiempo_actual = fin_tiempo
-        contador_bloques += 1
 
     srt_path = os.path.join(SUBTITULOS_DIR, f"subtitulos_{nicho}.srt")
     with open(srt_path, "w", encoding="utf-8") as f:

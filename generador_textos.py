@@ -17,24 +17,34 @@ def crear_prompt(nicho: str) -> str:
         [INST]
         You are a professional storyteller and narrative designer specialized in {nicho} stories.
         Generate one unique short story, following these guidelines:
-        - The story should be a complete narrative arc with a beginning, middle, and end.
         - Length: around 80 characters.
-        - Include emotional elements and vivid descriptions.
         - Focus on creating cinematic, visual moments.
-        - Perfect for video content and visual storytelling.
+        - Perfect for video content and visual story time.
         - Suitable for short-form video narration.
 
-        Just give me the story. I'll take care of the rest.
+        Just give me the text, not even the title. I'll take care of the rest.
         [/INST]
     """
 
 
 def procesar_respuesta(respuesta: list) -> str:
-    """Procesa la respuesta del modelo y extrae la historia."""
+    """Procesa la respuesta del modelo y extrae la historia.
+
+    Args:
+        respuesta (list): Lista con la respuesta del modelo
+
+    Returns:
+        str: Historia procesada sin las etiquetas de pensamiento
+    """
     content = respuesta[0]["generated_text"].split("[/INST]")[-1].strip()
-    pattern = r"Story:\s*(.*?)(?=\Z)"
-    historia = re.search(pattern, content, re.DOTALL)
-    return historia.group(1).strip() if historia else content.strip()
+
+    # Eliminar el contenido entre las etiquetas <think></think>
+    content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
+
+    # Limpiar espacios extra y líneas en blanco
+    content = re.sub(r"\n\s*\n", "\n", content.strip())
+
+    return content.strip()
 
 
 def guardar_idea_csv(ideas: list, nicho: str, archivo: str):
@@ -64,13 +74,13 @@ def formatear_csv(archivo: str):
         f.write("".join(nuevo_contenido))
 
 
-def generar_ideas_ollama(nicho: str) -> list[str]:
+def generar_ideas_deepseek(nicho: str) -> list[str]:
     """Genera una idea utilizando el modelo de Ollama a través de su endpoint."""
     prompt = crear_prompt(nicho)
     url = "http://localhost:11434/api/generate"
 
     payload = {
-        "model": "llama3.2",  # Especifica el modelo
+        "model": "deepseek-r1:14b",  # Especifica el modelo
         "prompt": prompt,
         "stream": False,  # Para obtener respuesta completa
     }
@@ -82,7 +92,7 @@ def generar_ideas_ollama(nicho: str) -> list[str]:
 
         # Ollama devuelve la respuesta en el campo 'response'
         texto_generado = data.get("response", "")
-
+        print(f"Texto generado: {texto_generado}")
         # Procesamos la respuesta
         return [
             procesar_respuesta([{"generated_text": prompt + "\n" + texto_generado}])
@@ -100,32 +110,32 @@ def main(nicho: str):
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
-        print("Iniciando Ollama limpio...")
-
-        # Iniciar Ollama en segundo plano
-        ollama_process = subprocess.Popen(
-            ["ollama", "run", "llama2"],
+        subprocess.Popen(
+            ["ollama", "run", "deepseek-r1:14b"],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
         )
         # Esperamos para que el endpoint se inicie
-        time.sleep(5)
+        time.sleep(8)
 
         # Generar ideas
-        ideas = generar_ideas_ollama(nicho)
+        ideas = generar_ideas_deepseek(nicho)
         if ideas:
             guardar_idea_csv(
                 ideas, nicho, os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv")
             )
             formatear_csv(os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv"))
             print("Ideas generadas con éxito")
-
     except Exception as e:
         print(f"Error al generar ideas: {e}")
 
     finally:
+        subprocess.Popen(
+            ["ollama", "stop", "deepseek-r1:14b"],
+            stdout=subprocess.PIPE,
+            stderr=subprocess.PIPE,
+        )
         # Asegurarnos de que Ollama se cierre
-        print("Finalizando Ollama...")
         subprocess.run(
             ["taskkill", "/F", "/IM", "ollama.exe"],
             stdout=subprocess.PIPE,

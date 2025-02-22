@@ -64,6 +64,11 @@ def main():
             "./generador_textos.py",
             ["--nicho", nicho],
         ),
+        (
+            "Generando prompts",
+            "./generador_prompts.py",
+            ["--nicho", nicho],
+        ),
         ("Generando audio", "./generador_audios.py", ["--nicho", nicho]),
         ("Generando imágenes", "./generador_imagenes.py", ["--nicho", nicho]),
         ("Generando subtitulos", "./generador_subtitulos.py", ["--nicho", nicho]),
@@ -83,6 +88,7 @@ def main():
 
             time.sleep(1)
             pbar.update(1)
+            print("\n", end="")
 
     logging.info("¡Automatización completada!")
 
