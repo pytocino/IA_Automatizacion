@@ -17,7 +17,7 @@ def crear_prompt(nicho: str) -> str:
         [INST]
         You are a professional storyteller and narrative designer specialized in {nicho} stories.
         Generate one unique short story, following these guidelines:
-        - Length: around 80 characters.
+        - Length: no longer than 50 words.
         - Focus on creating cinematic, visual moments.
         - Perfect for video content and visual story time.
         - Suitable for short-form video narration.

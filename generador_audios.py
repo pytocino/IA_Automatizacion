@@ -3,6 +3,7 @@ import csv
 import argparse
 from gtts import gTTS
 
+
 OUTPUT_DIR = "resources/audio"
 TEXT_DIR = "resources/texto"
 
@@ -16,7 +17,11 @@ def generate_audio_from_csv(nicho: str, output_folder: str, lang: str = "en"):
             reader = csv.DictReader(csvfile)
             row = next(reader)
             try:
-                tts = gTTS(text=row["Idea"], lang=lang)
+                tts = gTTS(
+                    text=row["Idea"],
+                    lang=lang,
+                    tld="us",
+                )
                 output_path = os.path.join(output_folder, f"audio_{row['Nicho']}.mp3")
                 tts.save(output_path)
             except Exception as e:
