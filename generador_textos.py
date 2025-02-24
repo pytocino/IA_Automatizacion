@@ -11,19 +11,42 @@ OUTPUT_FOLDER = "resources/texto"
 CSV_HEADERS = ["ID", "Idea", "Nicho"]
 
 
-def crear_prompt(nicho: str) -> str:
-    """Genera el prompt para el modelo utilizando chain-of-thought y pautas para contenido visualmente atractivo."""
+def crear_prompt(
+    nicho: str, era: str = "", location: str = "", tone: str = "engaging"
+) -> str:
+    """
+    Generates a prompt for an AI model using chain-of-thought reasoning to create visually engaging
+    short-form narratives with historical or factual foundations.
+
+    Parameters:
+        nicho: str - The specific subject/niche for the story
+        era: str - Optional historical period (e.g., "Victorian", "Ancient", "1980s")
+        location: str - Optional geographical setting (e.g., "Mediterranean", "Aztec Empire")
+        tone: str - Emotional tone of the narrative (default: "engaging")
+
+    Returns:
+        str - Formatted prompt for the model
+    """
     return f"""
         [INST]
-        You are a professional storyteller and narrative designer specialized in {nicho} stories.
-        First, internally analyze the key elements that make a story visually compelling and original, drawing inspiration where engaging, cinematic content is key. Consider aspects such as mood, dynamic imagery, narrative flow, and unique details.
-        Then, generate one unique short story, following these guidelines:
-        - Length: no longer than 50 words.
-        - Focus on creating cinematic, visual moments that capture attention.
-        - Perfect for short-form video narration.
-        - Ensure originality and avoid clichés.
+        You are a professional storyteller and narrative designer specialized in {nicho} stories with a factual or historical twist.
         
-        IMPORTANT: Do not include any of your internal reasoning or analysis in the final output. Output only the story text, without a title.
+        First, internally analyze:
+        1. The core historical or factual elements of {nicho} that would surprise most viewers
+        2. Visual imagery that could be captured in short-form video format
+        3. Emotional hooks that create immediate interest in {nicho}
+        4. How to incorporate {era if era else "any relevant time period"} and {location if location else "appropriate geographical context"}
+        5. Ways to maintain a {tone} tone while being educational
+        
+        Then, generate one unique micro-story following these guidelines:
+        - Begin with a hook starting with "Did you know...?" to introduce a surprising or intriguing fact
+        - Length: 30-60 words maximum (optimized for TikTok/Instagram Reels)
+        - Focus on creating cinematic, visual moments that viewers can easily imagine
+        - Include one specific detail (date, name, number) for authenticity
+        - Ensure historical accuracy while maintaining narrative intrigue
+        - Avoid clichés and overly familiar historical references
+        
+        IMPORTANT: Output only the final micro-story text, without any explanation, reasoning, or title.
         [/INST]
     """
 
@@ -75,9 +98,9 @@ def formatear_csv(archivo: str):
         f.write("".join(nuevo_contenido))
 
 
-def generar_ideas_deepseek(nicho: str) -> list[str]:
+def generar_ideas_deepseek(nicho: str, era: str, location: str, tone: str) -> list[str]:
     """Genera una idea utilizando el modelo de Ollama a través de su endpoint."""
-    prompt = crear_prompt(nicho)
+    prompt = crear_prompt(nicho, era, location, tone)
     url = "http://localhost:11434/api/generate"
 
     payload = {
@@ -93,7 +116,6 @@ def generar_ideas_deepseek(nicho: str) -> list[str]:
 
         # Ollama devuelve la respuesta en el campo 'response'
         texto_generado = data.get("response", "")
-        print(f"Texto generado: {texto_generado}")
         # Procesamos la respuesta
         return [
             procesar_respuesta([{"generated_text": prompt + "\n" + texto_generado}])
@@ -103,7 +125,8 @@ def generar_ideas_deepseek(nicho: str) -> list[str]:
         return []
 
 
-def main(nicho: str):
+def main(nicho: str, era: str = "", location: str = "", tone: str = "engaging"):
+    """Función principal para generar ideas de historias."""
     try:
         subprocess.Popen(
             ["ollama", "run", "deepseek-r1:14b"],
@@ -114,20 +137,26 @@ def main(nicho: str):
         time.sleep(8)
 
         # Generar ideas
-        ideas = generar_ideas_deepseek(nicho)
+        ideas = generar_ideas_deepseek(nicho, era, location, tone)
         if ideas:
             guardar_idea_csv(
                 ideas, nicho, os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv")
             )
             formatear_csv(os.path.join(OUTPUT_FOLDER, f"idea_{nicho}.csv"))
-            print("Ideas generadas con éxito")
     except Exception as e:
         print(f"Error al generar ideas: {e}")
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generador de ideas para historias")
-    parser.add_argument("--nicho", required=True, help="Nicho o tema de las historias")
+    parser.add_argument(
+        "--nicho", default="", required=True, help="Nicho o tema de las historias"
+    )
+    parser.add_argument("--era", default="", help="Período histórico para la historia")
+    parser.add_argument("--location", help="Ubicación geográfica para la historia")
+    parser.add_argument(
+        "--tone", default="engaging", help="Tono emocional de la narrativa"
+    )
     args = parser.parse_args()
     os.makedirs(OUTPUT_FOLDER, exist_ok=True)
-    main(args.nicho)
+    main(args.nicho, args.era, args.location, args.tone)

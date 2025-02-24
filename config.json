@@ -1,14 +1,47 @@
 {
   "nichos": [
-    "life changing",
-    "cultural shift",
-    "overcoming struggles",
-    "work stories",
-    "hidden truths",
-    "paranormal encounters",
-    "conspiracy theories",
-    "crazy travel stories",
-    "hard lessons",
-    "childhood memories"
+    {
+      "name": "Ancient Technology",
+      "eras": [
+        "Bronze Age",
+        "Iron Age",
+        "Classical",
+        "Roman Empire",
+        "Han Dynasty"
+      ],
+      "locations": [
+        "Greece",
+        "Rome",
+        "China",
+        "Egypt",
+        "Persia",
+        "Mesoamerica"
+      ],
+      "tones": ["fascinating", "curious", "technical", "appreciative"]
+    },
+    {
+      "name": "Lost Civilizations",
+      "eras": ["Neolithic", "Bronze Age", "Classical", "Pre-Columbian"],
+      "locations": [
+        "Mediterranean",
+        "South America",
+        "Southeast Asia",
+        "North Africa",
+        "Oceania"
+      ],
+      "tones": ["mysterious", "awe-inspiring", "educational", "melancholic"]
+    },
+    {
+      "name": "Historical Mysteries",
+      "eras": [
+        "Medieval",
+        "Renaissance",
+        "Victorian",
+        "Ancient",
+        "20th Century"
+      ],
+      "locations": ["Europe", "Americas", "Asia", "Africa", "Oceania"],
+      "tones": ["eerie", "investigative", "suspenseful", "puzzling"]
+    }
   ]
 }

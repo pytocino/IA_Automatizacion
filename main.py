@@ -32,6 +32,10 @@ def ejecutar_script(script_name: str, args: list = None) -> bool:
                 f"Error en {script_name}. Revisa automation.log para más detalles"
             )
             return False
+        if process.stdout:
+            logging.info(process.stdout)
+        if process.stderr:
+            logging.warning(process.stderr)
 
         return True
 
@@ -52,7 +56,6 @@ def main():
     with open(args.config, "r", encoding="utf-8") as f:
         config = json.load(f)
         nichos = config.get("nichos", [])
-        num_ideas = config.get("num_ideas", 1)
 
     nicho = random.choice(nichos)
     logging.info(f"Generando contenido para el nicho: {nicho}")
@@ -62,33 +65,43 @@ def main():
         (
             "Generando texto",
             "./generador_textos.py",
-            ["--nicho", nicho],
+            [
+                "--nicho",
+                nicho["name"],
+                "--era",
+                random.choice(nicho["eras"]),
+                "--location",
+                random.choice(nicho["locations"]),
+                "--tone",
+                random.choice(nicho["tones"]),
+            ],
         ),
-        ("Generando audio", "./generador_audios.py", ["--nicho", nicho]),
+        ("Generando audio", "./generador_audios.py", ["--nicho", nicho["name"]]),
+        ("Generando prompts", "./generador_prompts.py", ["--nicho", nicho["name"]]),
+        ("Generando imágenes", "./generador_imagenes.py", ["--nicho", nicho["name"]]),
         (
-            "Generando prompts",
-            "./generador_prompts.py",
-            ["--nicho", nicho],
+            "Generando subtitulos",
+            "./generador_subtitulos.py",
+            ["--nicho", nicho["name"]],
         ),
-        ("Generando imágenes", "./generador_imagenes.py", ["--nicho", nicho]),
-        ("Generando subtitulos", "./generador_subtitulos.py", ["--nicho", nicho]),
-        ("Generando videos", "./generador_videos_subtitulados.py", ["--nicho", nicho]),
+        (
+            "Generando videos",
+            "./generador_videos_subtitulados.py",
+            ["--nicho", nicho["name"]],
+        ),
     ]
 
     # Barra de progreso principal
     with tqdm(total=len(tareas), desc="Progreso total", position=0) as pbar:
         for desc, script, args in tareas:
-            # Actualizar descripción
-            pbar.set_description(f"▶ {desc}")
-
             # Ejecutar script
             if not ejecutar_script(script, args):
                 logging.error(f"Error en {desc}")
                 break
 
-            time.sleep(1)
+            # Actualizar barra de progreso después de completar la ejecución
             pbar.update(1)
-            print("\n", end="")
+            pbar.set_description(f"✓ {desc}")
 
     logging.info("¡Automatización completada!")
 

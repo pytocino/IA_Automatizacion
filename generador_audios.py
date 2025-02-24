@@ -21,15 +21,12 @@ def generate_audio_from_csv(nicho: str, output_folder: str, lang: str = "en"):
         # Inicializa TTS antes de abrir el archivo
         try:
             device = "cuda" if torch.cuda.is_available() else "cpu"
-            print(f"Usando dispositivo: {device}")
 
             # Inicializa el modelo TTS
             tts = TTS(
                 model_name="tts_models/en/ljspeech/tacotron2-DDC",  # Modelo específico para inglés
                 progress_bar=True,
             ).to(device)
-
-            print("Modelo TTS cargado correctamente")
 
         except Exception as e:
             print(f"Error al inicializar TTS: {str(e)}")
@@ -48,7 +45,6 @@ def generate_audio_from_csv(nicho: str, output_folder: str, lang: str = "en"):
                 mp3_output_path = os.path.join(
                     output_folder, f"audio_{row['Nicho']}.mp3"
                 )
-                print(f"Generando audio para: {row['Idea'][:50]}...")
 
                 # Generamos el audio WAV
                 tts.tts_to_file(text=row["Idea"], file_path=wav_output_path)
@@ -59,8 +55,6 @@ def generate_audio_from_csv(nicho: str, output_folder: str, lang: str = "en"):
 
                 # Eliminamos el archivo WAV temporal
                 os.remove(wav_output_path)
-
-                print(f"Audio MP3 generado exitosamente en: {mp3_output_path}")
 
             except Exception as e:
                 print(f"Error generando audio para idea de {row['Nicho']}: {str(e)}")

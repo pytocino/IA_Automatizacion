@@ -86,8 +86,6 @@ def main(nicho: str):
         # Obtener duración del audio y calcular número de prompts
         duracion = obtener_duracion_audio(nicho)
         num_prompts = max(1, int(duracion // 4))  # Una imagen cada 4 segundos
-        print(f"Duración del audio: {duracion:.2f} segundos")
-        print(f"Generando {num_prompts} prompts...")
 
         csv_filename = os.path.join(TEXT_DIR, f"idea_{nicho}.csv")
         with open(csv_filename, "r", encoding="utf-8") as f:

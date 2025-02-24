@@ -76,15 +76,21 @@ def generar_imagenes_desde_prompts(
     if base_seed is None:
         base_seed = torch.randint(0, 2**32 - 1, (1,)).item()
 
-    print(f"Usando seed base: {base_seed} para nicho: {nicho}")
-
     # Leer prompts del CSV
     with open(prompts_file, "r", encoding="utf-8") as f:
         reader = csv.DictReader(f)
         prompts = [row["Prompt"] for row in reader]
 
     for idx, prompt in enumerate(
-        tqdm(prompts, desc="Generando imágenes", unit="imagen", position=1, leave=False)
+        tqdm(
+            prompts,
+            desc="Generando imágenes",
+            unit="imagen",
+            position=0,  # Cambiado de 1 a 0
+            leave=True,  # Cambiado de False a True
+            ncols=80,  # Ancho fijo de la barra
+            dynamic_ncols=False,
+        )
     ):
         # Usamos un seed derivado para cada imagen
         current_seed = base_seed + idx
