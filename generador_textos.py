@@ -12,17 +12,18 @@ CSV_HEADERS = ["ID", "Idea", "Nicho"]
 
 
 def crear_prompt(nicho: str) -> str:
-    """Genera el prompt para el modelo."""
+    """Genera el prompt para el modelo utilizando chain-of-thought y pautas para contenido visualmente atractivo."""
     return f"""
         [INST]
         You are a professional storyteller and narrative designer specialized in {nicho} stories.
-        Generate one unique short story, following these guidelines:
-        - Length: no longer than 50 words.
-        - Focus on creating cinematic, visual moments.
-        - Perfect for video content and visual story time.
-        - Suitable for short-form video narration.
-
-        Just give me the text, not even the title. I'll take care of the rest.
+        First, internally analyze the key elements that make a story visually compelling and original, drawing inspiration where engaging, cinematic content is key. Consider aspects such as mood, dynamic imagery, narrative flow, and unique details.
+        Then, generate one unique short story, following these guidelines:
+        - Length: no longer than 60 words.
+        - Focus on creating cinematic, visual moments that capture attention.
+        - Perfect for short-form video narration.
+        - Ensure originality and avoid clichés.
+        
+        IMPORTANT: Do not include any of your internal reasoning or analysis in the final output. Output only the story text, without a title.
         [/INST]
     """
 
@@ -104,12 +105,6 @@ def generar_ideas_deepseek(nicho: str) -> list[str]:
 
 def main(nicho: str):
     try:
-        # Verificar si Ollama ya está corriendo y matarlo si es necesario
-        subprocess.run(
-            ["taskkill", "/F", "/IM", "ollama.exe"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
         subprocess.Popen(
             ["ollama", "run", "deepseek-r1:14b"],
             stdout=subprocess.PIPE,
@@ -128,19 +123,6 @@ def main(nicho: str):
             print("Ideas generadas con éxito")
     except Exception as e:
         print(f"Error al generar ideas: {e}")
-
-    finally:
-        subprocess.Popen(
-            ["ollama", "stop", "deepseek-r1:14b"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        # Asegurarnos de que Ollama se cierre
-        subprocess.run(
-            ["taskkill", "/F", "/IM", "ollama.exe"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
 
 
 if __name__ == "__main__":

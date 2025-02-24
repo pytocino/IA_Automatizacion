@@ -78,7 +78,7 @@ def generar_imagenes_desde_prompts(
         with torch.inference_mode():
             imagen = pipe(
                 prompt,
-                num_inference_steps=30,
+                num_inference_steps=50,
                 guidance_scale=7.0,
                 negative_prompt="text, watermark, low quality, cropped",
                 height=IMAGE_HEIGHT,

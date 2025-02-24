@@ -12,16 +12,17 @@ TEXT_DIR = "resources/texto"
 
 
 def crear_prompts(text: str):
-    """Crea prompts a partir de un texto"""
+    """Crea prompts a partir de un texto utilizando chain-of-thought para obtener diversidad visual."""
     return f"""
     [INST]
-    You are a professional prompt engineer specialized in image prompts.  
-    Your task is to split the following text into 10 small, self-contained prompts
-    suitable for generating distinct images. Each prompt should be clear, detailed,
-    and describe a single image concept. Ensure that no important details are lost. 
+    You are a professional prompt engineer specialized in image prompts. First, internally analyze the following text to identify distinct visual themes, scenarios, characters, and emotions. Draw inspiration from successful, engaging content practices.
+    Then, generate 10 concise, clear, and self-contained prompts that each describe a distinct image concept. 
+    Ensure that each prompt is visually appealing, original, and suitable for generating unique, cinematic images.
+    
+    IMPORTANT: Do not include any part of your internal reasoning in the final output. Output only the final image prompts, each separated by a line break, with no numbering, bullet points, or extra formatting.
+    
     Text:
     {text}
-    Output only the image prompts, separated by line breaks, without any numbering, bullet points, or extra formatting.  
     [INST]
     """
 
@@ -66,18 +67,6 @@ def generar_prompts_deepseek(text: str):
 
 def main(nicho: str):
     try:
-        subprocess.run(
-            ["taskkill", "/F", "/IM", "ollama.exe"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        subprocess.Popen(
-            ["ollama", "run", "deepseek-r1:14b"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
-        time.sleep(8)
-
         csv_filename = os.path.join(TEXT_DIR, f"idea_{nicho}.csv")
         with open(csv_filename, "r", encoding="utf-8") as f:
             reader = csv.DictReader(f)
