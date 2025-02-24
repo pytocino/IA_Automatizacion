@@ -61,11 +61,22 @@ def configurar_modelo():
 
 
 def generar_imagenes_desde_prompts(
-    nicho: str, pipe: StableDiffusion3Pipeline
+    nicho: str,
+    pipe: StableDiffusion3Pipeline,
+    base_seed: int = None,  # Seed base para la historia
 ) -> list[str]:
-    """Genera imágenes basadas en los prompts pre-generados del CSV."""
+    """
+    Genera imágenes basadas en los prompts pre-generados del CSV.
+    Usa seeds relacionados para mantener coherencia visual.
+    """
     imagenes_ruta = []
     prompts_file = os.path.join(PROMPTS_DIR, f"prompts_{nicho}.csv")
+
+    # Si no se proporciona seed, generamos uno aleatorio
+    if base_seed is None:
+        base_seed = torch.randint(0, 2**32 - 1, (1,)).item()
+
+    print(f"Usando seed base: {base_seed} para nicho: {nicho}")
 
     # Leer prompts del CSV
     with open(prompts_file, "r", encoding="utf-8") as f:
@@ -75,6 +86,10 @@ def generar_imagenes_desde_prompts(
     for idx, prompt in enumerate(
         tqdm(prompts, desc="Generando imágenes", unit="imagen", position=1, leave=False)
     ):
+        # Usamos un seed derivado para cada imagen
+        current_seed = base_seed + idx
+        generator = torch.Generator(device="cuda").manual_seed(current_seed)
+
         with torch.inference_mode():
             imagen = pipe(
                 prompt,
@@ -84,21 +99,29 @@ def generar_imagenes_desde_prompts(
                 height=IMAGE_HEIGHT,
                 width=IMAGE_WIDTH,
                 max_sequence_length=77,
+                generator=generator,
             ).images[0]
 
+        # Guardamos la imagen con su seed en los metadatos
         ruta_imagen = os.path.join(IMAGE_DIR, f"imagen_{idx + 1:03d}_{nicho}.jpeg")
-        imagen.save(ruta_imagen, quality=IMAGEN_QUALITY, optimize=True)
+        metadata = f"seed:{current_seed}"
+        imagen.save(
+            ruta_imagen,
+            quality=IMAGEN_QUALITY,
+            optimize=True,
+            comment=metadata.encode(),
+        )
         imagenes_ruta.append(ruta_imagen)
         time.sleep(0.5)
 
     return imagenes_ruta
 
 
-def main(nicho):
+def main(nicho, seed=None):
     os.makedirs(IMAGE_DIR, exist_ok=True)
     pipe = configurar_modelo()
     try:
-        generar_imagenes_desde_prompts(nicho, pipe)
+        generar_imagenes_desde_prompts(nicho, pipe, seed)
     except FileNotFoundError:
         print(f"No se encontró el archivo de prompts para el nicho: {nicho}")
     except Exception as e:
@@ -111,5 +134,8 @@ def main(nicho):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Generador de imágenes para historias")
     parser.add_argument("--nicho", required=True, help="Nicho o tema de las historias")
+    parser.add_argument(
+        "--seed", type=int, help="Seed base para generación de imágenes"
+    )
     args = parser.parse_args()
-    main(args.nicho)
+    main(args.nicho, args.seed)

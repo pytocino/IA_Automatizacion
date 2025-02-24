@@ -64,12 +64,12 @@ def main():
             "./generador_textos.py",
             ["--nicho", nicho],
         ),
+        ("Generando audio", "./generador_audios.py", ["--nicho", nicho]),
         (
             "Generando prompts",
             "./generador_prompts.py",
             ["--nicho", nicho],
         ),
-        ("Generando audio", "./generador_audios.py", ["--nicho", nicho]),
         ("Generando imágenes", "./generador_imagenes.py", ["--nicho", nicho]),
         ("Generando subtitulos", "./generador_subtitulos.py", ["--nicho", nicho]),
         ("Generando videos", "./generador_videos_subtitulados.py", ["--nicho", nicho]),

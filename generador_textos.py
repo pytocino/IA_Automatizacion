@@ -18,7 +18,7 @@ def crear_prompt(nicho: str) -> str:
         You are a professional storyteller and narrative designer specialized in {nicho} stories.
         First, internally analyze the key elements that make a story visually compelling and original, drawing inspiration where engaging, cinematic content is key. Consider aspects such as mood, dynamic imagery, narrative flow, and unique details.
         Then, generate one unique short story, following these guidelines:
-        - Length: no longer than 60 words.
+        - Length: no longer than 50 words.
         - Focus on creating cinematic, visual moments that capture attention.
         - Perfect for short-form video narration.
         - Ensure originality and avoid clichés.
