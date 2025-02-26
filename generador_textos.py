@@ -40,7 +40,7 @@ def crear_prompt(
         
         Then, generate one unique micro-story following these guidelines:
         - Begin with a hook starting with "Did you know...?" to introduce a surprising or intriguing fact
-        - Length: 30-60 words maximum (optimized for TikTok/Instagram Reels)
+        - Length: 40-50 words maximum.
         - Focus on creating cinematic, visual moments that viewers can easily imagine
         - Include one specific detail (date, name, number) for authenticity
         - Ensure historical accuracy while maintaining narrative intrigue
