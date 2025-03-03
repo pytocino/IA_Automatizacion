@@ -6,6 +6,7 @@ import subprocess
 import tempfile
 from PIL import Image
 import csv
+import datetime  # Añadido para manejar fecha y hora
 
 
 # Directorios
@@ -132,10 +133,19 @@ def crear_video(
 def main(nicho: str):
     os.makedirs(VIDEO_DIR, exist_ok=True)
 
+    # Eliminar espacios del nicho
+    nicho_sin_espacios = nicho.replace(" ", "_")
+
+    # Obtener fecha y hora actual en formato YYYYMMDD_HHMMSS
+    timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+
     texto = obtener_texto_csv(nicho)
     duracion_audio = obtener_duracion_audio(nicho)
     subtitulos_path = os.path.join(SUBTITULOS_DIR, f"subtitulos_{nicho}.srt")
-    output_path = os.path.join(VIDEO_DIR, f"video_{nicho}.mp4")
+
+    # Modificar el nombre del archivo de salida
+    output_path = os.path.join(VIDEO_DIR, f"video_{nicho_sin_espacios}_{timestamp}.mp4")
+
     crear_video(nicho, duracion_audio, subtitulos_path, output_path)
     torch.cuda.empty_cache()
     torch.cuda.ipc_collect()
