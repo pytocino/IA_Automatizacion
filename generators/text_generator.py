@@ -5,6 +5,7 @@ import requests
 import subprocess
 import time
 from typing import Optional, List
+from utils import start_ollama, stop_ollama
 
 
 class TextGenerator:
@@ -83,17 +84,16 @@ class TextGenerator:
         }
 
         # Iniciando Ollama
-        subprocess.Popen(
-            ["ollama", "run", "deepseek-r1:14b"],
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-        )
+        start_ollama()
         time.sleep(8)
 
-        response = requests.post(url, json=payload)
-        data = response.json()
-        texto_generado = data.get("response", "")
-        return self.procesar_respuesta({"response": texto_generado})
+        try:
+            response = requests.post(url, json=payload)
+            data = response.json()
+            texto_generado = data.get("response", "")
+            return self.procesar_respuesta({"response": texto_generado})
+        finally:
+            stop_ollama()
 
     def generate(
         self, nicho: str, era: str = "", location: str = "", tone: str = "engaging"

@@ -6,6 +6,7 @@ import subprocess
 import time
 from typing import List, Optional
 from pydub import AudioSegment
+from utils import start_ollama, stop_ollama
 
 
 class PromptGenerator:
@@ -66,11 +67,16 @@ class PromptGenerator:
             "stream": False,
         }
 
-        time.sleep(10)
+        # Iniciando Ollama
+        start_ollama()
+        time.sleep(8)
 
-        response = requests.post(url, json=payload)
-        data = response.json()
-        return self.procesar_respuesta(data)
+        try:
+            response = requests.post(url, json=payload)
+            data = response.json()
+            return self.procesar_respuesta(data)
+        finally:
+            stop_ollama()
 
     def generate(self, nicho: str) -> Optional[str]:
         prompts_path = os.path.join(self.OUTPUT_FOLDER, f"prompts_{nicho}.csv")

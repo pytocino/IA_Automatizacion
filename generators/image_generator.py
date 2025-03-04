@@ -117,4 +117,5 @@ class ImageGenerator:
         imagenes_rutas = self.generar_imagenes_desde_prompts(nicho, pipe, seed)
         torch.cuda.empty_cache()
         torch.cuda.ipc_collect()
+        del pipe
         return imagenes_rutas
