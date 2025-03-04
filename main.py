@@ -1,238 +1,158 @@
 import os
-import json
-import random
-from typing import Optional, Dict, Any, Tuple, List
+import asyncio
+from dotenv import load_dotenv
+from telegram import Update
+from telegram.ext import (
+    Application,
+    CommandHandler,
+    ContextTypes,
+)
+import sys
 
-from generators.text_generator import TextGenerator
-from generators.audio_generator import AudioGenerator
-from generators.prompt_generator import PromptGenerator
-from generators.image_generator import ImageGenerator
-from generators.subtitle_generator import SubtitleGenerator
-from generators.video_generator import VideoGenerator
-
-
-class ResourceManager:
-    """Gestiona los directorios y recursos necesarios para el sistema."""
-
-    @staticmethod
-    def ensure_directories() -> None:
-        """Crea las estructuras de directorios necesarias."""
-        directories = [
-            "resources/texto",
-            "resources/audio",
-            "resources/prompts",
-            "resources/imagenes",
-            "resources/subtitulos",
-            "resources/video",
-        ]
-        for directory in directories:
-            os.makedirs(directory, exist_ok=True)
+# Diccionario para almacenar procesos activos
+active_processes = {}
 
 
-class ConfigManager:
-    """Gestiona la configuración del sistema."""
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    user = update.effective_user
+    await update.message.reply_html(
+        f"Hola, {user.mention_html()}! Soy el bot de automatización de contenido.\n"
+        "Usa /run para iniciar la generación de contenido y /cancel para detener procesos.\n"
+        "Usa /last_video para obtener el último video generado."
+    )
 
-    def __init__(self, config_path: str = "config.json"):
-        """
-        Inicializa el gestor de configuración.
 
-        Args:
-            config_path: Ruta al archivo de configuración
-        """
-        self.config_path = config_path
+async def run_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Ejecuta la automatización directamente con configuración aleatoria"""
+    chat_id = update.effective_chat.id
 
-    def load_config(self) -> Dict[str, Any]:
-        """Carga la configuración desde el archivo JSON"""
-        try:
-            with open(self.config_path, "r", encoding="utf-8") as f:
-                return json.load(f)
-        except Exception:
-            return {"nichos": []}
-
-    def select_random_config(self) -> Tuple[str, str, str, str, Optional[int]]:
-        """
-        Selecciona aleatoriamente un nicho y sus parámetros.
-
-        Returns:
-            Tuple con (nicho, era, ubicación, tono, semilla)
-        """
-        config = self.load_config()
-
-        if not config["nichos"]:
-            return "Ancient Technology", "", "", "engaging", None
-
-        # Seleccionar un nicho aleatorio
-        nicho_config = random.choice(config["nichos"])
-
-        nicho = nicho_config["name"]
-        era = random.choice(nicho_config["eras"]) if nicho_config.get("eras") else ""
-        location = (
-            random.choice(nicho_config["locations"])
-            if nicho_config.get("locations")
-            else ""
+    # Verificar si ya hay un proceso activo para este usuario
+    user_processes = [
+        pid for pid in active_processes.keys() if pid.startswith(f"{chat_id}_")
+    ]
+    if user_processes:
+        await update.message.reply_text(
+            "Ya tienes un proceso activo. Usa /cancel para detenerlo antes de iniciar uno nuevo."
         )
-        tone = (
-            random.choice(nicho_config["tones"])
-            if nicho_config.get("tones")
-            else "engaging"
-        )
-        seed = random.randint(1, 1000000)  # Semilla aleatoria
+        return
 
-        return nicho, era, location, tone, seed
+    await update.message.reply_text("Iniciando proceso de automatización...")
 
-    def get_nicho_config(self, nicho_name: str) -> Dict[str, Any]:
-        """
-        Obtiene la configuración para un nicho específico.
-
-        Args:
-            nicho_name: Nombre del nicho a buscar
-
-        Returns:
-            Diccionario con la configuración del nicho o None si no existe
-        """
-        config = self.load_config()
-
-        for nicho in config.get("nichos", []):
-            if nicho["name"] == nicho_name:
-                return nicho
-
-        return None
+    # Inicia la tarea en segundo plano
+    context.application.create_task(execute_automation(chat_id))
 
 
-class VideoGenerationPipeline:
-    """Clase que maneja el pipeline completo de generación de videos."""
+async def execute_automation(chat_id):
+    from automation import VideoAutomation
 
-    def __init__(self):
-        self.text_generator = TextGenerator()
-        self.audio_generator = AudioGenerator()
-        self.prompt_generator = PromptGenerator()
-        self.image_generator = ImageGenerator()
-        self.subtitle_generator = SubtitleGenerator()
-        self.video_generator = VideoGenerator()
+    process_id = f"{chat_id}_random"
 
-    def generate(
-        self,
-        nicho: str,
-        era: str = "",
-        location: str = "",
-        tone: str = "engaging",
-        seed: Optional[int] = None,
-    ) -> str:
-        """
-        Ejecuta el pipeline completo de generación de video.
+    # Registramos el trabajo en proceso
+    active_processes[process_id] = {
+        "start_time": asyncio.get_event_loop().time(),
+    }
 
-        Args:
-            nicho: Tema o nicho del video
-            era: Período histórico
-            location: Ubicación geográfica
-            tone: Tono emocional de la narrativa
-            seed: Semilla para generación de imágenes
+    try:
+        # Ejecutamos la automatización con configuración aleatoria
+        automation = VideoAutomation()
+        result = automation.generate_video()  # Nicho aleatorio
 
-        Returns:
-            str: Ruta al video generado
-        """
-        nicho_procesado = nicho.replace(" ", "_")
-
-        self.text_generator.generate(nicho_procesado, era, location, tone)
-        self.audio_generator.generate(nicho_procesado)
-        self.prompt_generator.generate(nicho_procesado)
-        self.image_generator.generate(nicho_procesado, seed)
-        subtitles_path = self.subtitle_generator.generate(nicho_procesado)
-        video_path = self.video_generator.generate(nicho_procesado, subtitles_path)
-
-        return video_path
-
-
-class VideoAutomation:
-    """
-    Clase principal que coordina todo el proceso de automatización de videos.
-    Esta clase es utilizada por telegram_bot.py.
-    """
-
-    def __init__(self, config_path: str = "config.json"):
-        """
-        Inicializa la automatización de videos.
-
-        Args:
-            config_path: Ruta al archivo de configuración
-        """
-        self.resource_manager = ResourceManager()
-        self.config_manager = ConfigManager(config_path)
-        self.pipeline = VideoGenerationPipeline()
-
-        # Asegurar que las carpetas necesarias existan
-        self.resource_manager.ensure_directories()
-
-    def generate_video(self, nicho: Optional[str] = None) -> Dict[str, Any]:
-        """
-        Genera un video basado en el nicho especificado o aleatorio.
-
-        Args:
-            nicho: Nombre del nicho específico (opcional)
-
-        Returns:
-            Dict con información del video generado, incluyendo video_path
-        """
-        if nicho:
-            # Usar el nicho específico
-            nicho_config = self.config_manager.get_nicho_config(nicho)
-            if not nicho_config:
-                return {
-                    "error": f"No se encontró el nicho: {nicho}",
-                    "video_path": None,
-                }
-
-            # Seleccionar parámetros aleatorios del nicho específico
-            era = (
-                random.choice(nicho_config.get("eras", [""]))
-                if nicho_config.get("eras")
-                else ""
+        if "error" in result:
+            await application.bot.send_message(
+                chat_id=chat_id,
+                text=f"❌ Error en la automatización: {result['error']}",
             )
-            location = (
-                random.choice(nicho_config.get("locations", [""]))
-                if nicho_config.get("locations")
-                else ""
-            )
-            tone = (
-                random.choice(nicho_config.get("tones", ["engaging"]))
-                if nicho_config.get("tones")
-                else "engaging"
-            )
-            seed = random.randint(1, 1000000)
         else:
-            # Seleccionar nicho y parámetros aleatorios
-            nicho, era, location, tone, seed = (
-                self.config_manager.select_random_config()
+            await application.bot.send_message(
+                chat_id=chat_id,
+                text=f"✅ Automatización completada exitosamente\n"
+                f"Nicho: {result['nicho']}\n"
+                f"Video generado en: {result['video_path']}",
             )
+    except Exception as e:
+        await application.bot.send_message(
+            chat_id=chat_id, text=f"❌ Error inesperado: {str(e)}"
+        )
+    finally:
+        # Limpiamos el proceso de la lista de activos
+        if process_id in active_processes:
+            del active_processes[process_id]
 
-        # Generar el video
-        try:
-            video_path = self.pipeline.generate(
-                nicho=nicho, era=era, location=location, tone=tone, seed=seed
+
+async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    """Cancela cualquier proceso activo del usuario"""
+    chat_id = update.effective_chat.id
+    user_processes = [
+        pid for pid in active_processes.keys() if pid.startswith(f"{chat_id}_")
+    ]
+
+    if not user_processes:
+        await update.message.reply_text("No hay procesos activos para cancelar.")
+        return
+
+    # Cancela todos los procesos del usuario
+    for process_id in user_processes:
+        del active_processes[process_id]
+
+    await update.message.reply_text("Proceso(s) cancelado(s).")
+
+
+async def last_video_command(
+    update: Update, context: ContextTypes.DEFAULT_TYPE
+) -> None:
+    """Envía el último video generado en la carpeta resources/video"""
+    video_dir = "resources/video"
+
+    if not os.path.exists(video_dir):
+        await update.message.reply_text("La carpeta de videos no existe.")
+        return
+
+    # Obtener todos los archivos de video en la carpeta
+    video_files = [
+        os.path.join(video_dir, f)
+        for f in os.listdir(video_dir)
+        if os.path.isfile(os.path.join(video_dir, f))
+        and f.lower().endswith((".mp4", ".avi", ".mov", ".wmv", ".mkv"))
+    ]
+
+    if not video_files:
+        await update.message.reply_text("No hay videos disponibles.")
+        return
+
+    # Encontrar el archivo de video más reciente
+    last_video = max(video_files, key=os.path.getmtime)
+
+    try:
+        # Enviar el mensaje de que estamos procesando
+        await update.message.reply_text("Enviando el último video generado...")
+
+        # Enviar el video
+        with open(last_video, "rb") as video_file:
+            await update.message.reply_video(
+                video=video_file,
+                caption=f"Último video generado: {os.path.basename(last_video)}",
+                supports_streaming=True,
             )
-
-            return {
-                "video_path": video_path,
-                "nicho": nicho,
-                "era": era,
-                "location": location,
-                "tone": tone,
-                "seed": seed,
-            }
-        except Exception as e:
-            return {"error": str(e), "video_path": None}
+    except Exception as e:
+        await update.message.reply_text(f"Error al enviar el video: {str(e)}")
 
 
-def main():
-    """Función principal para ejecutar el proceso desde línea de comandos."""
-    automation = VideoAutomation()
-    result = automation.generate_video()
+def main() -> None:
+    os.makedirs("log", exist_ok=True)
+    load_dotenv()
+    token = os.environ.get("TELEGRAM_BOT_TOKEN")
+    if not token:
+        sys.exit(1)
 
-    if "error" in result:
-        print(f"Error: {result['error']}")
-    else:
-        print(f"Video generado exitosamente: {result['video_path']}")
-        print(f"Nicho: {result['nicho']}")
+    global application
+    application = Application.builder().token(token).build()
+
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("run", run_command))
+    application.add_handler(CommandHandler("cancel", cancel_command))
+    application.add_handler(CommandHandler("last_video", last_video_command))
+
+    application.run_polling()
 
 
 if __name__ == "__main__":
