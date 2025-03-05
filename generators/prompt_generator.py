@@ -1,12 +1,10 @@
 import os
 import csv
 import re
-import requests
-import subprocess
-import time
 from typing import List, Optional
 from pydub import AudioSegment
 from utils import start_ollama, stop_ollama
+import ollama
 
 
 class PromptGenerator:
@@ -28,20 +26,6 @@ class PromptGenerator:
         audio = AudioSegment.from_mp3(audio_path)
         return len(audio) / 1000  # Convertir de milisegundos a segundos
 
-    def crear_prompts(self, text: str, num_prompts: int) -> str:
-        return f"""
-        [INST]
-        You are a professional prompt engineer specialized in image prompts. First, internally analyze the following text to identify distinct visual themes, scenarios, characters, and emotions. Draw inspiration from successful, engaging content practices.
-        Then, generate {num_prompts} concise, clear, and self-contained prompts that each describe a distinct image concept. 
-        Ensure that each prompt is visually appealing, original, and suitable for generating unique, cinematic images.
-        
-        IMPORTANT: Do not include any part of your internal reasoning in the final output. Output only the final image prompts, each separated by a line break, with no numbering, bullet points, or extra formatting.
-        
-        Text:
-        {text}
-        [INST]
-        """
-
     def procesar_respuesta(self, respuesta: dict) -> str:
         content = respuesta.get("response", "").strip()
         content = re.sub(r"<think>.*?</think>", "", content, flags=re.DOTALL)
@@ -59,22 +43,21 @@ class PromptGenerator:
                 writer.writerow([i, prompt_limpio])
 
     def generar_prompts_deepseek(self, text: str, num_prompts: int) -> str:
-        prompts = self.crear_prompts(text, num_prompts)
-        url = "http://localhost:11434/api/generate"
-        payload = {
-            "model": "deepseek-r1:14b",
-            "prompt": prompts,
-            "stream": False,
-        }
-
         # Iniciando Ollama
         start_ollama()
-        time.sleep(8)
 
         try:
-            response = requests.post(url, json=payload)
-            data = response.json()
-            return self.procesar_respuesta(data)
+            modelo = "prompt-engineer"
+            prompt = (
+                f"""Generate {num_prompts} image prompts based on this text:{text}"""
+            )
+
+            response = ollama.generate(model=modelo, prompt=prompt, stream=False)
+
+            return self.procesar_respuesta(response)
+        except Exception as e:
+            print(f"Error al generar prompts con Ollama: {e}")
+            return ""
         finally:
             stop_ollama()
 
