@@ -2,21 +2,8 @@
   "nichos": [
     {
       "name": "Ancient Technology",
-      "eras": [
-        "Bronze Age",
-        "Iron Age",
-        "Classical",
-        "Roman Empire",
-        "Han Dynasty"
-      ],
-      "locations": [
-        "Greece",
-        "Rome",
-        "China",
-        "Egypt",
-        "Persia",
-        "Mesoamerica"
-      ],
+      "eras": ["Bronze Age", "Iron Age", "Classical", "Roman Empire"],
+      "locations": ["Greece", "Rome", "Egypt", "Persia", "Mesoamerica"],
       "tones": ["fascinating", "curious", "technical", "appreciative"]
     },
     {
@@ -40,7 +27,7 @@
         "Ancient",
         "20th Century"
       ],
-      "locations": ["Europe", "Americas", "Asia", "Africa", "Oceania"],
+      "locations": ["Europe", "Americas", "Africa", "Oceania"],
       "tones": ["eerie", "investigative", "suspenseful", "puzzling"]
     }
   ]

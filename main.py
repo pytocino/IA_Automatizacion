@@ -1,14 +1,17 @@
 import os
 import asyncio
+import multiprocessing
+import time
+from multiprocessing import Process
 from dotenv import load_dotenv
-from telegram import Update
+from telegram import Update, ReplyKeyboardMarkup, KeyboardButton
 from telegram.ext import (
     Application,
     CommandHandler,
     ContextTypes,
 )
 import sys
-from utils import borrar_recursos_generados
+from utils import borrar_recursos_generados, stop_ollama
 
 # Diccionario para almacenar procesos activos
 active_processes = {}
@@ -16,11 +19,17 @@ active_processes = {}
 
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     user = update.effective_user
+
+    # Create keyboard buttons
+    keyboard = [
+        [KeyboardButton("/run"), KeyboardButton("/last_video")],
+        [KeyboardButton("/clean"), KeyboardButton("/cancel")],
+    ]
+    reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
+
     await update.message.reply_html(
-        f"Hola, {user.mention_html()}! Soy el bot de automatización de contenido.\n"
-        "Usa /run para iniciar la generación de contenido y /cancel para detener procesos.\n"
-        "Usa /last_video para obtener el último video generado.\n"
-        "Usa /clean para borrar todos los recursos generados."
+        f"Hola tocino! Selecciona una de las siguientes opciones:",
+        reply_markup=reply_markup,
     )
 
 
@@ -40,27 +49,66 @@ async def run_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> Non
 
     await update.message.reply_text("Iniciando proceso de automatización...")
 
-    # Inicia la tarea en segundo plano
-    context.application.create_task(execute_automation(chat_id))
-
-
-async def execute_automation(chat_id):
-    from automation import VideoAutomation
-    import gc
-
+    # Inicia la tarea en un proceso separado
     process_id = f"{chat_id}_random"
-    automation = None
+    result_queue = multiprocessing.Queue()
+
+    process = Process(target=run_automation_in_process, args=(process_id, result_queue))
+    process.daemon = (
+        True  # Importante: esto asegura que el proceso hijo termine si el padre termina
+    )
+    process.start()
 
     # Registramos el trabajo en proceso
     active_processes[process_id] = {
-        "start_time": asyncio.get_event_loop().time(),
+        "process": process,
+        "start_time": time.time(),
+        "result_queue": result_queue,
     }
 
+    # Iniciar la tarea de monitoreo del proceso
+    context.application.create_task(monitor_process(chat_id, process_id))
+
+
+def run_automation_in_process(process_id, result_queue):
+    """Esta función se ejecuta en un proceso separado"""
     try:
-        # Ejecutamos la automatización con configuración aleatoria
+        from automation import VideoAutomation
+
+        # Ejecutamos la automatización
         automation = VideoAutomation()
         result = automation.generate_video()  # Nicho aleatorio
 
+        # Enviamos el resultado al proceso principal
+        result_queue.put(result)
+
+    except Exception as e:
+        result_queue.put({"error": str(e)})
+    finally:
+        # Asegurar que Ollama está detenido en este proceso
+        stop_ollama()
+
+
+async def monitor_process(chat_id, process_id):
+    """Monitorea el proceso de automatización y notifica cuando termina"""
+    if process_id not in active_processes:
+        return
+
+    process_info = active_processes[process_id]
+    process = process_info["process"]
+    result_queue = process_info["result_queue"]
+
+    # Esperar a que el proceso termine o revisar periódicamente
+    while process.is_alive():
+        await asyncio.sleep(2)  # Revisar cada 2 segundos
+
+    # Obtener el resultado (si está disponible)
+    result = None
+    if not result_queue.empty():
+        result = result_queue.get(timeout=1)
+
+    # Notificar al usuario
+    if result:
         if "error" in result:
             await application.bot.send_message(
                 chat_id=chat_id,
@@ -73,49 +121,16 @@ async def execute_automation(chat_id):
                 f"Nicho: {result['nicho']}\n"
                 f"Video generado en: {result['video_path']}",
             )
-    except Exception as e:
+    else:
         await application.bot.send_message(
-            chat_id=chat_id, text=f"❌ Error inesperado: {str(e)}"
+            chat_id=chat_id, text="❌ Proceso terminado sin resultados disponibles"
         )
-    finally:
-        # Limpiamos el proceso de la lista de activos
-        if process_id in active_processes:
-            del active_processes[process_id]
 
-        # Liberar recursos explícitamente
-        if automation:
-            if hasattr(automation.pipeline, "image_generator"):
-                # Liberar recursos de la GPU
-                del automation.pipeline.image_generator
-
-            # Liberar el resto de generadores
-            for attr in [
-                "text_generator",
-                "audio_generator",
-                "prompt_generator",
-                "subtitle_generator",
-                "video_generator",
-            ]:
-                if hasattr(automation.pipeline, attr):
-                    setattr(automation.pipeline, attr, None)
-
-            # Eliminar el objeto completo
-            del automation.pipeline
-            del automation
-
-        # Asegurarse que Ollama está detenido
-        from utils import stop_ollama
-
-        stop_ollama()
-
-        # Forzar recolección de basura
-        import torch
-
-        if torch.cuda.is_available():
-            torch.cuda.empty_cache()
-            torch.cuda.ipc_collect()
-
-        gc.collect()
+    # Eliminar el proceso de los activos
+    if process_id in active_processes:
+        # Limpiar recursos
+        process.terminate() if process.is_alive() else None
+        del active_processes[process_id]
 
 
 async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -131,6 +146,9 @@ async def cancel_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
 
     # Cancela todos los procesos del usuario
     for process_id in user_processes:
+        process_info = active_processes[process_id]
+        if "process" in process_info and process_info["process"].is_alive():
+            process_info["process"].terminate()
         del active_processes[process_id]
 
     await update.message.reply_text("Proceso(s) cancelado(s).")
