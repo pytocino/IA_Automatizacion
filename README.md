@@ -119,6 +119,7 @@ Asegúrate de tener instalado y configurado lo siguiente en tu sistema:
 
 ## 📁 Estructura del Proyecto
 
+```
 IA_Automatizacion/
 ├── main.py # 🚀 Script principal que coordina la automatización
 ├── generador_textos.py # 📝 Genera el texto/idea del video usando Llama 3.2
@@ -131,6 +132,7 @@ IA_Automatizacion/
 ├── .env # 🔑 (Opcional) Variables de entorno (ej: Token de Telegram)
 ├── automation.log # 🪵 Archivo de logs para seguimiento y depuración
 └── README.md # 📖 Este archivo de documentación
+```
 
 ## 🛠️ Componentes Clave en Detalle
 
