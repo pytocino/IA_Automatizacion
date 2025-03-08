@@ -8,7 +8,7 @@
 
 ## ✨ Características Asombrosas
 
-- **🧠 Generación de Texto Inteligente:** Utiliza **Llama 3.2** (a través de Ollama) para crear narrativas cautivadoras y originales.
+- **🧠 Generación de Texto Inteligente:** Utiliza **DeepSeek-R1** (a través de Ollama) para crear narrativas cautivadoras y originales.
 - **🗣️ Voz Sintética Realista:** Convierte el texto en audio natural con **gTTS**, dándole vida a tus historias.
 - **🖼️ Imágenes Impactantes:** Genera visuales únicas y relevantes con **Stable Diffusion 3.5**, optimizadas para la narrativa.
 - **🎬 Creación de Videos Automatizada:** Ensambla imágenes, audio y subtítulos en un video MP4 profesional usando **FFmpeg**.
@@ -27,7 +27,7 @@ Asegúrate de tener instalado y configurado lo siguiente en tu sistema:
   - **NVIDIA cuDNN 9.7.1:** [Descargar cuDNN](https://developer.nvidia.com/cudnn) (requiere cuenta de desarrollador NVIDIA) - Asegúrate de que la versión de cuDNN sea compatible con tu versión de CUDA.
 - **FFmpeg 🎬:** **FFmpeg 7.1-essentials_build** o superior. Necesario para la manipulación de video y audio. [Descargar FFmpeg](https://ffmpeg.org/download.html) - Asegúrate de añadir FFmpeg a tu PATH del sistema.
 - **Ollama 🦙:** **Ollama instalado y configurado** para ejecutar modelos de lenguaje localmente. [Descargar Ollama](https://ollama.com/download)
-- **Modelo Llama 3.2 en Ollama:** Asegúrate de haber descargado el modelo **Llama 3.2** en Ollama. Ejecuta en tu terminal: `ollama pull llama2`
+- **Modelo DeepSeek-R1 en Ollama:** Asegúrate de haber descargado el modelo **DeepSeek-R1** en Ollama. Ejecuta en tu terminal: `ollama pull deepseek-r1:14b`
 
 ## 🛠️ Instalación Paso a Paso
 
@@ -58,13 +58,13 @@ Asegúrate de tener instalado y configurado lo siguiente en tu sistema:
 
     _Este comando instalará todas las bibliotecas Python necesarias listadas en `requirements.txt`._
 
-4.  **Descarga el Modelo Llama 3.2 en Ollama:**
+4.  **Descarga el Modelo DeepSeek-R1 en Ollama:**
 
     ```bash
-    ollama pull llama2
+    ollama pull deepseek-r1:14b
     ```
 
-    _Este comando descarga el modelo Llama 3.2 a través de Ollama, si aún no lo tienes._
+    _Este comando descarga el modelo DeepSeek-R1 a través de Ollama, si aún no lo tienes._
 
 ## 💻 Cómo Utilizar el Generador de Videos
 
@@ -122,7 +122,7 @@ Asegúrate de tener instalado y configurado lo siguiente en tu sistema:
 ```
 IA_Automatizacion/
 ├── main.py # 🚀 Script principal que coordina la automatización
-├── generador_textos.py # 📝 Genera el texto/idea del video usando Llama 3.2
+├── generador_textos.py # 📝 Genera el texto/idea del video usando DeepSeek-R1
 ├── generador_audios.py # 🔊 Sintetiza la voz a partir del texto con gTTS
 ├── generador_imagenes.py # 🖼️ Genera imágenes basadas en prompts con Stable Diffusion 3.5
 ├── generador_prompts.py # 💡 Crea prompts de imágenes a partir del texto generado
@@ -138,7 +138,7 @@ IA_Automatizacion/
 
 1.  **Generador de Textos (`generador_textos.py`)**
 
-    - Utiliza el modelo **Llama 3.2** a través de la API local de **Ollama**.
+    - Utiliza el modelo **DeepSeek-R1** a través de la API local de **Ollama**.
     - Genera historias cortas y concisas optimizadas para videos cortos.
     - Personalizable en tono, época y ubicación a través de `config.json`.
 
@@ -165,7 +165,7 @@ IA_Automatizacion/
 - **Revisa `automation.log`:** En caso de errores, el archivo `automation.log` es el primer lugar para buscar mensajes detallados y pistas sobre la causa del problema.
 - **Barra de Progreso:** Observa la barra de progreso en la consola para identificar en qué etapa del proceso se detuvo o falló la generación.
 - **Errores con Timestamp:** Los errores en el log incluyen marcas de tiempo para facilitar la correlación con eventos específicos durante la ejecución.
-- **Problemas con Ollama/Modelos:** Asegúrate de que Ollama esté correctamente instalado y ejecutándose, y que el modelo Llama 3.2 se haya descargado correctamente (`ollama pull llama2`).
+- **Problemas con Ollama/Modelos:** Asegúrate de que Ollama esté correctamente instalado y ejecutándose, y que el modelo DeepSeek-R1 se haya descargado correctamente (`ollama pull deepseek-r1:14b`).
 - **Dependencias Faltantes:** Si encuentras errores relacionados con "ModuleNotFoundError", verifica que hayas instalado correctamente todas las dependencias con `pip install -r requirements.txt` en tu entorno virtual.
 - **FFmpeg no encontrado:** Asegúrate de que FFmpeg esté instalado y correctamente añadido a las variables de entorno de tu sistema (PATH).
 
