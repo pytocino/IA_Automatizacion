@@ -176,5 +176,3 @@ Este proyecto está distribuido bajo la Licencia MIT. Consulta el archivo `LICEN
 ---
 
 **¡Disfruta automatizando la creación de videos con IA!** 🚀
-
-_(Recuerda personalizar las URLs, credenciales, nombres de usuario, y otros detalles específicos de tu implementación en este README)_
